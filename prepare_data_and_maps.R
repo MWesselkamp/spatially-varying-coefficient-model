@@ -83,34 +83,46 @@ save(allPreds, file="Rdata/allPreds2.Rdata")
 predTerms <- predict(fgamSVCtsr, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
 save(predTerms, file="Rdata/predTerms2.Rdata")
 
-load("predTerms2.Rdata")
+load("Rdata/predTerms2.Rdata")
 summary(predTerms)
 
 ## kmeans clustering ###
 
-clustered.predictions <- vector(mode = "list", length = 30)
-for (i in 2:length(clustered.predictions)+1){
+clustered.predictions <- vector(mode = "list", length = 15)
+for (i in 2:16){
   clustered.predictions[[i]] <- kmeans(predTerms, centers=i, nstart=25)
 }
-wss = numeric(length(clustered.predictions))
-for (i in 3:31){
-  wss[i] = clustered.predictions[[i]]$tot.withinss/clustered.predictions[[i]]$totss
-}
-plot(3:31, wss[3:31], type="b", ylim=c(0,0.5), xlab="Number of Clusters",
-     ylab="Total within groups sum of squares")
-
 
 clustered.predictions.scaled <- vector(mode = "list", length = 15)
 for (i in 2:16){
   clustered.predictions.scaled[[i]] <- kmeans(scale(predTerms), centers=i, nstart=25)
 }
-save(clustered.predictions.scaled, file="clusters2scaled.Rdata")
 
+# Determine optimal number of clusters from unscaled predictions.
+## Elbow method: 10?
 which.max(sapply(clustered.predictions, function(x) x$tot.withinss/x$totss))
+
+## Calinski criterion: 3 /5 or 6
+require(vegan)
+fit = cascadeKM(predTerms, 1,15,iter = 1000)
+plot(fit, sortg = TRUE, grpmts.plot = TRUE)
+calinski.best <- as.numeric(which.max(fit$results[2,]))
+cat("Calinski criterion optimal number of clusters:", calinski.best, "\n")
+
+## Bayesian information criterion: 20
+library(mclust)
+d_clust <- Mclust(as.matrix(predTerms), G=1:20)
+m.best <- dim(d_clust$z)[2]
+cat("model-based optimal number of clusters:", m.best, "\n")
+# 4 clusters
+plot(d_clust)
+
+## Predict to neutral 
 
 # LOAD TO REPRODUCE FIGURES
 load("Rdata/clusters2.Rdata")
 clustered.predictions <- clusters2
+
 load("Rdata/allPreds2.Rdata")
 
 ### SOME MAPS ###
@@ -267,24 +279,22 @@ p4.s <- ggplot() +
         legend.key=element_rect(fill = "white", size=0.5),
         plot.margin = margin(0.5,0.5,0.5,0.5, "cm")) + 
   guides(color = guide_legend(override.aes = list(size=3))) +
-  scale_color_manual(name="Ecotype", values = col.l)
+  ggsci::scale_color_d3(name="Ecotypes")
 
 
-pdf("figures/ecotypes6-scaled.pdf")
+pdf("figures/6clusters-scaled.pdf")
 p4.s
 dev.off()  
-
 ### Same plot with 13 clusters
 load("Rdata/clusters2.Rdata")
-useCluster <- clusters2[[12]]$cluster
-col.13 <- c('#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080')
+useCluster <- clusters2[[13]]$cluster
+col.l <- rainbow(13, s=0.8, v=0.8)
 
-
-p12 <- ggplot() + 
+p13 <- ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="grey55") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey68") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey68")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey68") +
+  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey68") + 
+  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey68")  + 
+  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey68") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=factor(useCluster)), size=0.01) + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
@@ -294,10 +304,10 @@ p12 <- ggplot() +
         legend.title = element_text(size=8, face="bold"), 
         legend.key=element_rect(fill = "white", size=0.5),
         plot.margin = margin(0.5,0.5,0.5,0.5, "cm")) + 
-  guides(color = guide_legend(override.aes = list(size=3))) + 
-  scale_color_manual(name = "Ecotypes", values = col.13)
-p12
+  guides(color = guide_legend(override.aes = list(size=3)))+
+  scale_color_manual(values=col.l,name="Ecotypes")
+p13
 
-pdf("figures/ecotypes12.pdf")
-p12
+pdf("figures/ecotypes13.pdf")
+p13
 dev.off()
