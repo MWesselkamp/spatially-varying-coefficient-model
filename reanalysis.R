@@ -1,3 +1,10 @@
+require(ggplot2)
+require(mgcv)
+require(maps)
+require(raster)
+require(rgdal)
+require(randomForest)
+
 #=================#
 # stationary GAM  #
 #=================#
@@ -327,7 +334,7 @@ pDNA <- ggplot() +
 
 
 ## Extract BIOCLIM variables for 44 genotypes populations.
-require(raster)
+
 bioclim = getData("worldclim", var="bio", res=10)
 mypoints = data.frame(long=DNAdata$Longitude, lat=DNAdata$Latitude)
 myvars = as.data.frame(extract(bioclim, mypoints))
@@ -343,9 +350,17 @@ DNAdata_scaled = DNAdata
 DNAdata_scaled[,(12:17)] = scale(DNAdata_scaled[,(12:17)])
 
 ## convert latitude and longitude to UTM coordinates.
-names(DNAdata_scaled)[4:5] = c("y", "x")
+xy = data.frame(x = DNAdata_scaled[,5], y = DNAdata_scaled[,4])
+coordinates(xy) = c("x", "y")
+proj4string(xy) = CRS("+proj=longlat +datum=WGS84")
+res = spTransform(xy, "+proj=utm +datum=WGS84")
+DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
 
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
 load("~/Sc_Master/SVCM/Rdata/fgamSVCtrs2.Rdata")
+
+preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
+
+DNAclusters = kmeans(predTermsDNA, centers = 6, nstart = 25)
