@@ -1,5 +1,16 @@
 # REANALYSIS
 
+## Variable importance with Random Forest and Boosted Regression Trees.
+
+After a straight forward variable selection (non-correlated, highly representative variable choices), we tested our variables for relative importance with RF and GBM. In both cases, MWMT appears to explain most of the abundance. RF found PPT_wt and PPT_sm in this order the second important variables, then followed by TD. The GBM found PPT_sm and TD in this order the second and third important variables.
+This confirmed our choice of variables. Due to computational reasons, the SVCM was only run with three climate predictors, which we now - based on the quantitative and qualitative findings - chose to be MWMT, PPT_sm and TD.
+
+## Choice of cluster numbers
+
+## The neutral map
+
+We ran a neutral model. That means, zeros and ones were completely randomized. The model, as could be expected delivered a very poor fit with an R² of around 0. From this model, we predicted to the true abundances (i.e. to the true ones) and extracted the model coefficients. Those were clustered after the suggested procedure. These neutral clusters were then compared with the ecotypic clusters for a range of cluster numbers. The accordance, quantified with Rand's index, was highest for a number of 14 clusters with over 84%, but only around 69% for a number of 6 clusters.
+This is a high accordance for that the neutral cluster should simply represent the climatic clusters. However, ecotypes are by definition strongly related to the climate, so we would actually expect a high accordance. However, we suggest that the interspecific differences, that cannot that cannot be explained by climate are contained in the remaining 15-30% unequal cluster assignments.
 
 ## Validation with Genotypes (Wei et al.)
 
