@@ -4,6 +4,9 @@ require(maps)
 require(raster)
 require(rgdal)
 require(randomForest)
+require(dismo)
+require(gbm)
+require(clusteval)
 
 #=================#
 # stationary GAM  #
@@ -105,21 +108,18 @@ plot(fm)
 # only with non-correlated variables
 
 ## RandomForest
-require(randomForest)
 rf = randomForest(as.factor(PRES) ~ TD + MWMT + PPT_wt  + PPT_sm + MDMP, data=DouglasSample)
 varImpPlot(rf)
 save(rf, file="Rdata/randomForest.Rdata")
 
 ## Boosted regression trees
 # same variables. Test for interactions (reviewer recommendations)
-require(dismo)
-require(gbm)
+
 brt1 = gbm.step(data=DouglasSample, gbm.x = c(11,15,17,18,19), gbm.y = 7, family = "bernoulli", tree.complexity = 5, learning.rate = 0.005, bag.fraction = 0.5)
 save(brt1, file="Rdata/regressiontrees.Rdata")
 
 summary(brt1)
-brt1_int = gbm.interactions(brt1)
-brt1_int$rank.list
+relative.influence(brt1)
 
 ## Another simple stationary gam
 
@@ -163,12 +163,9 @@ save(clustered.predictionsN, file="Rdata/clusteredpredictionsN.Rdata")
 
 
 # Plot clusters#
-
-x <- c("maps", "ggplot2")
-lapply(x, library, character.only=TRUE)
-
 countries <- map_data("world")
 northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 180)
+
 load("states.Rdata")
 load("states_mex.Rdata")
 load("states_ca.Rdata")
@@ -359,8 +356,40 @@ DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
 load("~/Sc_Master/SVCM/Rdata/fgamSVCtrs2.Rdata")
+load("~/Sc_Master/SVCM/Rdata/clusters2.Rdata")
 
 preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
 
-DNAclusters = kmeans(predTermsDNA, centers = 6, nstart = 25)
+Ecoclusters_Wei = kmeans(predTermsDNA, centers = 6, nstart = 25)
+
+## similarity of ecotypes and genotypes.
+confusion_matrix(DNAdata$Genotype, Ecoclusters_Wei$cluster)
+cluster_similarity(DNAdata$Genotype, Ecoclusters_Wei$cluster, "rand")
+
+
+## Show ecotypic classifications for both, the large dataset (ecotypes in grey colors) and the genotyped populations (ecotypes in rainbow colors).
+Ecoclusters_all = clusters2[[6]]$cluster+70
+
+greys = grey.colors(6, start=0.2, end=0.8)
+rainbows = rainbow(n=6)
+col.12 <- c(rainbows, greys)
+pDNA <- ggplot() + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
+  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
+  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
+  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(Ecoclusters_all)), size=1.5, alpha=0.5) + 
+  geom_point(data=DNAdata_scaled, aes(x=Longitude, y=Latitude, col=factor(Ecoclusters_Wei$cluster)), size=1) +
+  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+  scale_colour_manual(values = col.12, name = "Genotype")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.border = element_rect(colour="grey45", fill=NA, size=1), 
+        panel.background = element_blank(), axis.title = element_blank(), 
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", 
+        legend.title = element_text(size=8, face="bold"),legend.text = element_text(size=8),
+        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
+pDNA
+
+
+
