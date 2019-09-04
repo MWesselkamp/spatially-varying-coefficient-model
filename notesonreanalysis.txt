@@ -1,0 +1,8 @@
+# REANALYSIS
+
+
+## Validation with Genotypes (Wei et al.)
+
+Of Douglas Fir populations that have been genotypes are only 44 available across the range of its abundance in North America.
+This is not enough for a proper validation, but we didn't have a choice but using these few data points.
+However, we fitted the SVCM to a large dataset of DF presences. We then predicted with this model to the dataset of 44 true presences and extracted the model coeffienct ("terms"). K-means was applied to get a number of 6 clusters. Those were then compared with the predefined 6 genotypes, a classification contained in the dataset. The similarity we found between classified genotypes and our ecotypic clusters was, quantified with the Rand Index, over 70%. 
