@@ -30,8 +30,7 @@ DouglasScaledPres = DouglasScaled[which(DouglasScaled$PRES==1),]
 DouglasSample = Douglas[sample(nrow(Douglas), 10000),]
 
 # Plot the spatial distribution of subsetted datapoints
-x <- c("maps", "ggplot2")
-lapply(x, library, character.only=TRUE)
+
 countries <- map_data("world")
 northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
 
@@ -164,7 +163,7 @@ save(clustered.predictionsN, file="Rdata/clusteredpredictionsN.Rdata")
 
 # Plot clusters#
 countries <- map_data("world")
-northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 180)
+northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
 
 load("states.Rdata")
 load("states_mex.Rdata")
@@ -245,7 +244,7 @@ eclust <- clusters2[[13]]$cluster
 cn = confusion_matrix(nclust, eclust)
 
 ## Cluster similarity: Ecotypes and neutral model ##
-require(clusteval)
+
 cluster_similarity(nclust, eclust, similarity = c("jaccard"))
 # Rand's: [14 clusters] 0.842104, [12 Clusters] 0.8208949, [6 clusters] 0.6966142
 # Jaccard: [14 clusters] 0.1456683, [12 clusters] 0.1583153, [6 clusteres] 0.2151505
@@ -311,23 +310,29 @@ plot(1:14, wss, type="b", xlab="Number of Clusters",
 #########################################
 
 DNAdata = read.csv("~/ScAdditional/PaperSVCM/data/Doug-Fir DNA data (Wei et al, 2011).csv")
+load("~/Sc_Master/SVCM/Rdata/clusters2.Rdata")
+Ecoclusters_all = clusters2[[6]]$cluster+70
 
+RColorBrewer::brewer.pal(6, "Set1")
+greys = grey.colors(6, start=0.2, end=0.9)
+col.6 <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33")
+col.12 <- c(col.6, greys)
 
-col.6 <- c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
 pDNA <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="grey70") + 
-  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
-  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
-  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
-  geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col=factor(Genotype)), size=1) +
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(POP)), size=1.5, alpha=0.5) + 
+  geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col="white", fill=factor(Genotype)), size=1.9, shape=21) +
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_manual(values = col.6, name = "Genotype")+
+  scale_color_manual(values = c(greys, "black"), guide = FALSE) +
+  scale_fill_manual(values = col.6, name = "Genotype")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
-        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom", 
-        legend.title = element_text(size=8, face="bold"),legend.text = element_text(size=8),
-        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_rect(fill="grey80"))
 
 
 ## Extract BIOCLIM variables for 44 genotypes populations.
@@ -356,7 +361,6 @@ DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
 load("~/Sc_Master/SVCM/Rdata/fgamSVCtrs2.Rdata")
-load("~/Sc_Master/SVCM/Rdata/clusters2.Rdata")
 
 preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
@@ -369,27 +373,28 @@ cluster_similarity(DNAdata$Genotype, Ecoclusters_Wei$cluster, "rand")
 
 
 ## Show ecotypic classifications for both, the large dataset (ecotypes in grey colors) and the genotyped populations (ecotypes in rainbow colors).
-Ecoclusters_all = clusters2[[6]]$cluster+70
 
-greys = grey.colors(6, start=0.2, end=0.8)
-rainbows = rainbow(n=6)
-col.12 <- c(rainbows, greys)
-pDNA <- ggplot() + 
+RColorBrewer::brewer.pal(6, "Dark2")
+col.6.2 = c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
+
+pECO = ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
-  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
-  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
-  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
+  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(Ecoclusters_all)), size=1.5, alpha=0.5) + 
-  geom_point(data=DNAdata_scaled, aes(x=Longitude, y=Latitude, col=factor(Ecoclusters_Wei$cluster)), size=1) +
+  geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col="white", fill=factor(Ecoclusters_Wei$cluster)), size=1.9, shape=21) +
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_manual(values = col.12, name = "Genotype")+
+  scale_color_manual(values = c(greys, "black"), guide = FALSE) +
+  scale_fill_manual(values = col.6.2, name = "Ecotype")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
-        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", 
-        legend.title = element_text(size=8, face="bold"),legend.text = element_text(size=8),
-        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
-pDNA
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_rect(fill="grey80"))
 
+require(cowplot)
 
-
+png("figures/reanalysis.png")
+plot_grid(pDNA, pECO, ncol=2)
+dev.off()
