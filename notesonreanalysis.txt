@@ -7,13 +7,16 @@ This confirmed our choice of variables. Due to computational reasons, the SVCM w
 
 ## Choice of cluster numbers
 
+As proceeded as an unsupervised classification, the choice of cluster numbers isn't explicit. A measure of goodness is the within sum of squares per cluster, that descreases with cluster homogeneity. There is a range of additional methods to quantify a best number of clusters of which we compared some. However, they delivered varying results and in addition to keep the analysis as transparent as possible, the choice for six clusters was based on the available validation data, the genotyped populations. Still, the choice of ecotypes is a choice of desired resolution that should also depend on available ressources.
+
 ## The neutral map
 
-We ran a neutral model. That means, zeros and ones were completely randomized. The model, as could be expected delivered a very poor fit with an R² of around 0. From this model, we predicted to the true abundances (i.e. to the true ones) and extracted the model coefficients. Those were clustered after the suggested procedure. These neutral clusters were then compared with the ecotypic clusters for a range of cluster numbers. The accordance, quantified with Rand's index, was highest for a number of 14 clusters with over 84%, but only around 69% for a number of 6 clusters.
+We ran a neutral model. That means, zeros and ones were completely randomized. The model, as could be expected delivered a very poor fit with an R² of around 0. From this model, we predicted to the true abundances (i.e. to the true ones) and extracted the model coefficients. Those were clustered following the suggested procedure. These neutral clusters were then compared with the ecotypic clusters for a range of cluster numbers. The accordance, quantified with Rand's index, was highest for a number of 14 clusters with over 84%, but only around 69% for a number of 6 clusters.
 This is a high accordance for that the neutral cluster should simply represent the climatic clusters. However, ecotypes are by definition strongly related to the climate, so we would actually expect a high accordance. However, we suggest that the interspecific differences, that cannot that cannot be explained by climate are contained in the remaining 15-30% unequal cluster assignments.
 
 ## Validation with Genotypes (Wei et al.)
 
-Of Douglas Fir populations that have been genotypes are only 44 available across the range of its abundance in North America.
+Of Douglas Fir populations that have been genotyped are only 44 available across the range of its abundance in North America.
 This is not enough for a proper validation, but we didn't have a choice but using these few data points.
 However, we fitted the SVCM to a large dataset of DF presences. We then predicted with this model to the dataset of 44 true presences and extracted the model coeffienct ("terms"). K-means was applied to get a number of 6 clusters. Those were then compared with the predefined 6 genotypes, a classification contained in the dataset. The similarity we found between classified genotypes and our ecotypic clusters was, quantified with the Rand Index, over 70%. 
+The same procedure was applied to 

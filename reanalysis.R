@@ -5,12 +5,15 @@ require(raster)
 require(rgdal)
 require(randomForest)
 require(dismo)
-require(gbm)
-require(clusteval)
-
-#=================#
-# stationary GAM  #
-#=================#
+require(gbm) # boosted regression trees
+require(clusteval) # cluster similarity
+require(mda) # discriminant function analysis
+require(corrplot) # correlation plot
+require(Hmisc) # varclus plot
+ 
+#=========================================#
+# Variable selection with stationary GAM  #
+#=========================================#
 
 Douglas <- read.csv("data/DF Plot Data (Norm_6190 Climate).csv")
 Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
@@ -30,10 +33,12 @@ DouglasScaledPres = DouglasScaled[which(DouglasScaled$PRES==1),]
 DouglasSample = Douglas[sample(nrow(Douglas), 10000),]
 
 # Plot the spatial distribution of subsetted datapoints
-x <- c("maps", "ggplot2")
-lapply(x, library, character.only=TRUE)
+
 countries <- map_data("world")
 northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
+load("Rdata/states.Rdata")
+load("Rdata/states_mex.Rdata")
+load("Rdata/states_ca.Rdata")
 
 ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="grey70") +
@@ -53,11 +58,8 @@ ggplot() +
 
 # analyse the correlation between variables as a correlation plot and cluster
 cormat = cor(as.matrix(DouglasSample[,10:36]))
-
-require(corrplot)
 corrplot(cormat, number.digits = 1)
 
-require(Hmisc)
 DouglasSample = DouglasSample[,-c(1:9,16,12,22,26,29,31)]
 DouglasSample = DouglasSample[,-c(9:15)]
 DouglasSample = DouglasSample[,-c(10:12, 14)]
@@ -81,14 +83,12 @@ names(DouglasSampleScaled)[10:17] = c("MWMT","MWMT2", "PPT_sm", "PPT_sm2", "TD",
 DouglasSampleScaled$PPT_wt2 = DouglasSampleScaled$PPT_wt^2
 DouglasSampleScaled$MDMP2 = DouglasSampleScaled$MDMP^2
 
-
 DouglasSampleScaled[,c(10:19)] = scale(DouglasSampleScaled[,c(10:19)])
 
 
 ## Run stationary GAMs with the leftover non-correlated variables ##
-require(mgcv)
 
-## Run simplest GAM
+# Run simplest GAM
 fm = gam(PRES ~ s(TD, k=100) + s(TD2, k=100) + s(MWMT, k=100) + s(MWMT2, k=100) + s(PPT_sm, k=100) + s(PPT_sm2, k=100), control = gam.control(maxit = 1000), family = binomial, method="ML", data=DouglasSampleScaled)
 
 save(fm, file="Rdata/fgamStatSimple.Rdata")
@@ -130,8 +130,7 @@ summary(fm)
 plot(fm)
 
 
-## Spatially variable coefficient model with five predictors.
-
+## Spatially variable coefficient model with five predictors?
 
 
 #=============#
@@ -144,9 +143,7 @@ DouglasScaledN$PRES = sample(DouglasScaledN$PRES)
 
 # fit svcm to neutral data
 fgamSVCtsrN <- gam(PRES ~ s(y, x, k=100) + s(y, x, by=TD, k=100) + s(y, x, by=TD2, k=100) + s(y, x, by= PPT_sm, k=100) + s(y, x, by=PPT_sm2, k=100) + s(y, x, by=MWMT, k=100) + s(y, x, by=MWMT2, k=100), method="ML", family=binomial, control=gam.control(maxit=1000), data=DouglasScaledN)
-
 save(fgamSVCtsrN, file="Rdata/fgamSVCtsrN.Rdata")
-
 summary(fgamSVCtsrN) # very bad model.
 
 ##k-means clustering##
@@ -164,11 +161,7 @@ save(clustered.predictionsN, file="Rdata/clusteredpredictionsN.Rdata")
 
 # Plot clusters#
 countries <- map_data("world")
-northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 180)
-
-load("states.Rdata")
-load("states_mex.Rdata")
-load("states_ca.Rdata")
+northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
 
 useCluster <- clustered.predictionsN[[12]]$cluster
 col.6 <- c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
@@ -245,7 +238,7 @@ eclust <- clusters2[[13]]$cluster
 cn = confusion_matrix(nclust, eclust)
 
 ## Cluster similarity: Ecotypes and neutral model ##
-require(clusteval)
+
 cluster_similarity(nclust, eclust, similarity = c("jaccard"))
 # Rand's: [14 clusters] 0.842104, [12 Clusters] 0.8208949, [6 clusters] 0.6966142
 # Jaccard: [14 clusters] 0.1456683, [12 clusters] 0.1583153, [6 clusteres] 0.2151505
@@ -311,23 +304,31 @@ plot(1:14, wss, type="b", xlab="Number of Clusters",
 #########################################
 
 DNAdata = read.csv("~/ScAdditional/PaperSVCM/data/Doug-Fir DNA data (Wei et al, 2011).csv")
+load("Rdata/clusters2.Rdata")
+Ecoclusters_all = clusters2[[6]]$cluster
 
+RColorBrewer::brewer.pal(6, "Set1")
+greys = grey.colors(6, start=0.2, end=1.0)
+col.6 = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33")
+col.d = c("#ffffb2","#fed976","#feb24c","#fd8d3c","#f03b20", "#bd0026") # same colours as in Paper overview
+col.12 = c(col.6, greys)
 
-col.6 <- c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
-pDNA <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="grey70") + 
-  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
-  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
-  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
-  geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col=factor(Genotype)), size=1) +
+pDNA = ggplot() + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(POP)), size=0.8, alpha=1) + 
+  geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col="white", fill=factor(Genotype)), size=1.2, shape=21) +
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_manual(values = col.6, name = "Genotype")+
+  scale_color_manual(values = c(greys, "black"), guide = FALSE) +
+  scale_fill_manual(values = c(col.d), name = "Genotypes")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
-        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom", 
-        legend.title = element_text(size=8, face="bold"),legend.text = element_text(size=8),
-        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())  +
+  guides(fill = guide_legend(override.aes = list(size=2)))
 
 
 ## Extract BIOCLIM variables for 44 genotypes populations.
@@ -355,41 +356,90 @@ DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
 
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
-load("~/Sc_Master/SVCM/Rdata/fgamSVCtrs2.Rdata")
-load("~/Sc_Master/SVCM/Rdata/clusters2.Rdata")
+load("Rdata/fgamSVCtrs2.Rdata")
 
 preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
-
 Ecoclusters_Wei = kmeans(predTermsDNA, centers = 6, nstart = 25)
 
 ## similarity of ecotypes and genotypes.
-confusion_matrix(DNAdata$Genotype, Ecoclusters_Wei$cluster)
+#confusion_matrix(DNAdata$Genotype, Ecoclusters_Wei$cluster)
 cluster_similarity(DNAdata$Genotype, Ecoclusters_Wei$cluster, "rand")
 
 
 ## Show ecotypic classifications for both, the large dataset (ecotypes in grey colors) and the genotyped populations (ecotypes in rainbow colors).
-Ecoclusters_all = clusters2[[6]]$cluster+70
 
-greys = grey.colors(6, start=0.2, end=0.8)
-rainbows = rainbow(n=6)
-col.12 <- c(rainbows, greys)
-pDNA <- ggplot() + 
+RColorBrewer::brewer.pal(6, "Dark2")
+col.6.2 = c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
+col.l = c("#1F77B4FF", "#FF7F0EFF", "#2CA02CFF", "#D62728FF", "#9467BDFF", "#8C564BFF") # same colours as in effect plots.
+
+pECO = ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
-  #geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
-  #geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
-  #geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
-  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(Ecoclusters_all)), size=1.5, alpha=0.5) + 
-  geom_point(data=DNAdata_scaled, aes(x=Longitude, y=Latitude, col=factor(Ecoclusters_Wei$cluster)), size=1) +
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_manual(values = col.12, name = "Genotype")+
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(Ecoclusters_all)), size=0.8, alpha=1) + 
+  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) +
+  scale_color_manual(values = c(col.l), name="Ecotypes") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
-        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "none", 
-        legend.title = element_text(size=8, face="bold"),legend.text = element_text(size=8),
-        plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
-pDNA
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) +
+  guides(color = guide_legend(override.aes = list(size=2)))
 
 
+## Combine with Raw data and model predicitons to new overview plot ##
 
+load("~/ScAdditional/PaperSVCM/Rdata/allPreds2.Rdata")
+
+p1 = ggplot() + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data=DouglasScaled, aes(x=Long, y=Lat, col=allPreds), size = 0.7)  + 
+  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+  scale_colour_gradient(name="SVCM \nPredictions", low="#003366", high="#99CCFF", breaks = c(0.25, 0.5, 0.75), labels = c("0.25", "", "0.75")) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.border = element_rect(colour="grey45", fill=NA, size=1), 
+        panel.background = element_blank(), axis.title = element_blank(), 
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+
+p2 = ggplot() + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data=DouglasScaled, aes(x=Long, y=Lat, col=factor(DouglasScaled$PRES, levels = c(1,0))), size = 0.7) + 
+  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.border = element_rect(colour="grey45", fill=NA, size=1), 
+        panel.background = element_blank(), axis.title = element_blank(), 
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom", 
+        legend.title = element_text(size=12, face="bold"), legend.text = element_text(size=11),
+        legend.key=element_rect(fill = "white", size=0.5),
+        legend.key.size = unit(5,"points")) + 
+  guides(color = guide_legend(override.aes = list(size=2))) +
+  scale_color_manual(values=c("#99CCFF", "#003366"), labels=c("present", "absent"),
+                     name="Observation \nStatus")
+
+
+pdf("figures/OverviewR.pdf")
+ggpubr::ggarrange(p2, p1, pDNA, pECO,ncol = 2, nrow = 2, hjust=-4)
+dev.off()  
+
+
+##################################
+# Discriminant Function Analysis #
+##################################
+
+Ecotypes = clusters2[[6]]$cluster
+DouglasScaledPres = cbind(DouglasScaledPres, Ecotypes)
+
+fda1 = fda(Ecotypes ~ TD + TD2 + PPT_sm + PPT_sm2 + MWMT + MWMT2, data=DouglasScaledPres)
+predictions = predict(fda1, DouglasScaledPres)
+mean(predictions == Ecotypes)
+
+fda1$percent.explained
