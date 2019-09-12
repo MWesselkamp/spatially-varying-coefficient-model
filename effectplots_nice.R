@@ -18,12 +18,12 @@ newMWMT2 <- newMWMT^2
 newMWMTscaled <- (newMWMT - mean(Douglas$MWMT))/sd(Douglas$MWMT)
 newMWMT2scaled <- (newMWMT2 - mean(Douglas$MWMT^2))/sd(Douglas$MWMT^2)
 
-load("Rdata/newcalculations/useCluster_final_ns.Rdata")
+load("clusters2.Rdata")
 # generate new data frame at mean location of clust_members, marginalized to predictor TD
 # other predictors are fixed to the mean value of cluster locations.
 #useCluster <- clustered.predictions[[6]]
 #useCluster <- useCluster$cluster
-
+useCluster <- clusters2[[6]]$cluster
 df.com <- vector(mode = "list", length=6)
 
 for (j in 1:6){
@@ -37,8 +37,8 @@ for (j in 1:6){
 
   for (i in 1:length(clustmembers)){
   
-    newTDdata <- data.frame(Lat=DougScaled$Lat[clustmembers[i]], Long=DougScaled$Long[clustmembers[i]], TD=newTDscaled, TD2=newTD2scaled, PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
-    effTD1[[i]] <- predict.gam(fgamSVCtsr, newdata = newTDdata, type="response")
+    newTDdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=newTDscaled, TD2=newTD2scaled, PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
+    effTD1[[i]] <- predict.gam(fgamSVCtrs2, newdata = newTDdata, type="response")
   
   }
 
@@ -56,8 +56,8 @@ for (j in 1:6){
   
   for (i in 1:length(clustmembers)){
     
-    newPPTsmdata <- data.frame(Lat=DougScaled$Lat[clustmembers[i]], Long=DougScaled$Long[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=newPPTsmscaled, PPT_sm2=newPPTsm2scaled, MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
-    effPPTsm[[i]] <- predict.gam(fgamSVCtsr, newdata = newPPTsmdata, type="response")
+    newPPTsmdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=newPPTsmscaled, PPT_sm2=newPPTsm2scaled, MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
+    effPPTsm[[i]] <- predict.gam(fgamSVCtrs2, newdata = newPPTsmdata, type="response")
     
   }
   
@@ -76,8 +76,8 @@ for (j in 1:6){
   effMWMT <- vector(mode="list", length = length(clustmembers) )
 
   for (i in 1:length(clustmembers)){
-    newMWMTdata <- data.frame(Lat=DougScaled$Lat[clustmembers[i]], Long=DougScaled$Long[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=newMWMTscaled, MWMT2=newMWMT2scaled)
-    effMWMT[[i]] <- predict.gam(fgamSVCtsr, newdata = newMWMTdata, type="response")
+    newMWMTdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=newMWMTscaled, MWMT2=newMWMT2scaled)
+    effMWMT[[i]] <- predict.gam(fgamSVCtrs2, newdata = newMWMTdata, type="response")
   
   }
 
@@ -95,26 +95,11 @@ for (j in 1:6){
 }
 
 df.all <- do.call(rbind, df.com)
-save(df.all, file="Rdata/newcalculations/effectplot_predictions_df.Rdata")
+save(df.all, file="Rdata/effectplot_predictions_df2.Rdata")
 
-load("Rdata/effectplot_predictions_df2.Rdata")
+df.all$ID <- c("MWMT (?C)", "PPT_sm (mm)", "TD (?C)")[match(as.factor(df.all$ID), c("MWMT","PPT_sm","TD"))]
 
-df.all$ID <- c("MWMT [°C]", "PPT_sm [mm]", "TD [°C]")[match(as.factor(df.all$ID), c("MWMT","PPT_sm","TD"))]
-df.all$ID <- factor(df.all$ID, levels=c("TD [°C]", "PPT_sm [mm]", "MWMT [°C]"))
-
-pdf("figures/Effects.pdf", height = 12, width = 7)
-
-ggplot(df.all) + ylim(0,1) + geom_path(aes(x=newseq, y=median, col=as.factor(Cluster))) + labs(y="Occurrence Probability")+
-  geom_ribbon(aes(ymin = third, ymax = second, x=newseq), fill="grey50" , alpha=0.3) + 
-  theme(aspect.ratio = 1, axis.title.x = element_blank(), strip.text.x = element_text(face="bold"),
-        strip.text.y = element_text(face="bold"),panel.background = element_blank(), 
-        legend.key = element_blank(), legend.position = "none") + 
-  facet_grid(Cluster~ID, scales="free_x") + 
-  ggsci::scale_color_d3(name="Cluster")
-
-dev.off()
-
-png("presentation/Effects6clusters2.png", width=600, height=950, units="px")
+pdf("figs/Effects.pdf", height = 12, width = 7)
 
 ggplot(df.all) + ylim(0,1) + geom_path(aes(x=newseq, y=median, col=as.factor(Cluster))) + labs(y="Occurrence Probability")+
   geom_ribbon(aes(ymin = third, ymax = second, x=newseq), fill="grey50" , alpha=0.3) + 
