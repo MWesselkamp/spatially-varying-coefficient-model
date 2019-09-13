@@ -443,3 +443,29 @@ predictions = predict(fda1, DouglasScaledPres)
 mean(predictions == Ecotypes)
 
 fda1$percent.explained
+
+#====================#
+# Graphical Abstract #
+#====================#
+
+useCluster <- clusters2[[6]]$cluster
+col.l <-  c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38") # coffee colors
+
+p4 <- ggplot() + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=factor(useCluster)), size=0.8) + 
+  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+  scale_color_manual(values = c(col.l), name = "Ecotypes")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.border = element_rect(colour="grey45", fill=NA, size=1), 
+        panel.background = element_blank(), axis.title = element_blank(), 
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())  +
+  guides(color = guide_legend(override.aes = list(size=2)))
+
+pdf("figures/graphicalAbstract.pdf")
+p4
+dev.off()
