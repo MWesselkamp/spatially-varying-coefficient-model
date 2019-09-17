@@ -22,11 +22,11 @@ row.names(Douglas) <- NULL # reset the rownames to index
 Douglas$TD2 <- Douglas$TD^2
 Douglas$MWMT2 <- Douglas$MWMT^2
 Douglas$PPT_sm2 <- Douglas$PPT_sm^2
-Douglas$Tave_wt2 <- Douglas$Tave_wt^2
-Douglas$Elev2 <- Douglas$Elev^2
+Douglas$PPT_wt2 <- Douglas$PPT_wt^2
+Douglas$MDMP2 <- Douglas$MDMP^2
 
 DouglasScaled = Douglas
-DouglasScaled[,(10:22)] = scale(DouglasScaled[,(10:22)])
+DouglasScaled[,c(10:22, 37:43)] = scale(DouglasScaled[,c(10:22,37:43)])
 DouglasScaledPres = DouglasScaled[which(DouglasScaled$PRES==1),]
 
 # Take a subset eof the data for computational reasons
@@ -97,11 +97,17 @@ plot(fm)
 
 # Use all five variables and quadrativ terms
 
-fm = gam(PRES ~ s(TD, k=100) + s(TD2, k=100) + s(MWMT, k=100) + s(MWMT2, k=100) + s(PPT_sm, k=100) + s(PPT_sm2, k=100) + s(PPT_wt, k=100) + s(PPT_wt2, k=100) + s(MDMP, k=100) + s(MDMP2, k=100), control = gam.control(maxit = 1000), family = binomial, method="ML", data=DouglasSampleScaled)
+fm = gam(PRES ~ s(TD, k=100) + s(TD2, k=100) + s(MWMT, k=100) + s(MWMT2, k=100) + s(PPT_sm, k=100) + s(PPT_sm2, k=100) + s(PPT_wt, k=100) + s(PPT_wt2, k=100) + s(MDMP, k=100) + s(MDMP2, k=100), control = gam.control(maxit = 1000), family = binomial, method="ML", data=DouglasScaled)
 
 save(fm, file="Rdata/fgamStatSimple2.Rdata")
+
+load("Rdata/reanalysis/fgamStatSimple2.Rdata")
 summary(fm)
 plot(fm)
+
+fm1 = gam(PRES ~ s(TD, k=100) + s(TD2, k=100) + s(MWMT, k=100) + s(MWMT2, k=100) + s(PPT_sm, k=100) + s(PPT_sm2, k=100) + s(PPT_wt, k=100) + s(PPT_wt2, k=100), control = gam.control(maxit = 1000), family = binomial, method="ML", data=DouglasSampleScaled)
+
+fm2 = gam(PRES ~ s(TD, k=100) + s(TD2, k=100) + s(MWMT, k=100) + s(MWMT2, k=100) + s(PPT_sm, k=100) + s(PPT_sm2, k=100), control = gam.control(maxit = 1000), family = binomial, method="ML", data=DouglasSampleScaled)
 
 
 ## Variable importance ##
@@ -109,7 +115,7 @@ plot(fm)
 
 ## RandomForest
 rf = randomForest(as.factor(PRES) ~ TD + MWMT + PPT_wt  + PPT_sm + MDMP, data=DouglasSample)
-varImpPlot(rf)
+randomForest::varImpPlot(rf)
 save(rf, file="Rdata/randomForest.Rdata")
 
 ## Boosted regression trees
@@ -119,7 +125,7 @@ brt1 = gbm.step(data=DouglasSample, gbm.x = c(11,15,17,18,19), gbm.y = 7, family
 save(brt1, file="Rdata/regressiontrees.Rdata")
 
 summary(brt1)
-relative.influence(brt1)
+sort(relative.influence(brt1))
 
 ## Another simple stationary gam
 
@@ -160,31 +166,27 @@ save(clustered.predictionsN, file="Rdata/clusteredpredictionsN.Rdata")
 
 
 # Plot clusters#
-countries <- map_data("world")
-northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
-
+load("Rdata/reanalysis/clusteredpredictionsN.Rdata")
 useCluster <- clustered.predictionsN[[12]]$cluster
-col.6 <- c("#F3DF6C", "#CEAB07", "#798E87","#C93312", "#CCC591","#C27D38")
-col.13 <- c('#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080')
+col.6 = wesanderson::wes_palette("Cavalcanti1", 6, type = "continuous") 
+col.12 = wesanderson::wes_palette("Cavalcanti1", 12, type = "continuous") 
 
 p4 <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="grey70") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey85") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey85")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey85") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=factor(useCluster)), size=0.01) + 
+  geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="black") + 
+  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=factor(useCluster)), size=1.0) + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+  scale_color_manual(values = c(col.12), name = "Ecotypes")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
-        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom", 
-        legend.title = element_text(size=11, face="bold"), legend.text = element_text(size=11),
-        legend.key=element_rect(fill = "white", size=0.5),
-        plot.margin = margin(0.1,0.1,0.1,0.1, "cm")) + 
-  guides(color = guide_legend(override.aes = list(size=3))) + 
-  scale_color_manual(name = "Cluster", values = col.13)
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())  +
+  guides(color = guide_legend(override.aes = list(size=2)))
 
-pdf("figures/p4_12_neutral.pdf", width=6)
+pdf("figures/neutralClusters12.pdf")
 p4
 dev.off()
 
@@ -219,7 +221,7 @@ dev.off()
 
 
 ############################
-# Confusion with genotypes #
+# Cluster similarities     #
 ############################
 
 confusion_matrix = function(genotype, ecotype){
@@ -233,28 +235,23 @@ confusion_matrix = function(genotype, ecotype){
 ## Confusion of neutral clusters and ecotypic clusters
 load("clusters2.Rdata")
 nclust <- clustered.predictionsN[[12]]$cluster
-eclust <- clusters2[[13]]$cluster
+eclust <- clusters2[[6]]$cluster
 
-cn = confusion_matrix(nclust, eclust)
+confusion_matrix(nclust, eclust)
 
 ## Cluster similarity: Ecotypes and neutral model ##
+cluster_similarity(nclust, eclust, similarity = c("rand"))
+# Rand's: [12 Clusters] 0.8208949, [6 clusters] 0.6966142
 
-cluster_similarity(nclust, eclust, similarity = c("jaccard"))
-# Rand's: [14 clusters] 0.842104, [12 Clusters] 0.8208949, [6 clusters] 0.6966142
-# Jaccard: [14 clusters] 0.1456683, [12 clusters] 0.1583153, [6 clusteres] 0.2151505
-
-## Cluster similartiy: Ecotypes/neutral model and genotypes ##
-cluster_similarity(as.numeric(DouglasScaledPres$POP)-1, eclust, similarity=c("rand"))
-#[1] 0.7173828
-cluster_similarity(as.numeric(DouglasScaledPres$POP)-1, nclust, similarity=c("rand"))
-#[1] 0.7120244
+## Cluster similartiy: Ecotypes/neutral model and Rehfeldt genotypes ##
+cluster_similarity(as.numeric(DougScaledPres$POP)-1, eclust, similarity=c("rand"))
+#[6 clusters] 0.7173828 [12 clusters] 0.7888955
+cluster_similarity(as.numeric(DougScaledPres$POP)-1, nclust, similarity=c("rand"))
+#[6 clusters] 0.7120244 [12 clusters] 0.7493401
 
 
-## Confusion matrix: 12 clusters in 6 genotypes ## 
-cm12 = confusion_matrix(genotype = as.numeric(DouglasScaledPres$POP)-1, ecotype = eclust)
-cm12
-cluster_similarity(as.numeric(DouglasScaledPres$POP)-1, eclust, similarity=c("rand"))
-# Rand's: [14 clusters] 0.772675, [12 clusters] 0.7888955, [6 clusters] 0.7173828
+## Cluster similarity: Ecotypes/neutral model and Rehfeldt genotypes ##
+confusion_matrix(as.numeric(DNAdata$Genotype), eclust)
 
 
 # percentage of ecotypic presences assigned to neutral cluster
@@ -304,6 +301,7 @@ plot(1:14, wss, type="b", xlab="Number of Clusters",
 #########################################
 
 DNAdata = read.csv("~/ScAdditional/PaperSVCM/data/Doug-Fir DNA data (Wei et al, 2011).csv")
+
 load("Rdata/clusters2.Rdata")
 Ecoclusters_all = clusters2[[6]]$cluster
 
@@ -333,7 +331,7 @@ pDNA = ggplot() +
 
 ## Extract BIOCLIM variables for 44 genotypes populations.
 
-bioclim = getData("worldclim", var="bio", res=10)
+bioclim = getData("worldclim", var="bio", lon=DNAdata$Longitude, lat=DNAdata$Latitude,res=0.5)
 mypoints = data.frame(long=DNAdata$Longitude, lat=DNAdata$Latitude)
 myvars = as.data.frame(extract(bioclim, mypoints))
 myvars_small = data.frame(TD = myvars$bio7/10, MWMT = myvars$bio10/10, PPT_sm = myvars$bio18)
@@ -352,11 +350,16 @@ xy = data.frame(x = DNAdata_scaled[,5], y = DNAdata_scaled[,4])
 coordinates(xy) = c("x", "y")
 proj4string(xy) = CRS("+proj=longlat +datum=WGS84")
 res = spTransform(xy, "+proj=utm +datum=WGS84")
+
 DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
+DNAdata = cbind(DNAdata, res@coords)
+
+save(DNAdata, file="Rdata/DNAdata.Rdata")
+save(DNAdata_scaled, file="Rdata/DNAdata_scaled.Rdata")
 
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
-load("Rdata/fgamSVCtrs2.Rdata")
+load("Rdata/fgamSVCtsr2.Rdata")
 
 preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
@@ -364,7 +367,8 @@ Ecoclusters_Wei = kmeans(predTermsDNA, centers = 6, nstart = 25)
 
 ## similarity of ecotypes and genotypes.
 #confusion_matrix(DNAdata$Genotype, Ecoclusters_Wei$cluster)
-cluster_similarity(DNAdata$Genotype, Ecoclusters_Wei$cluster, "rand")
+cluster_similarity(Ecoclusters_Wei$cluster, DNAdata$Genotype, "rand")
+cluster_similarity(Ecoclusters_Wei$cluster, clusters2[[6]]$cluster, "rand")
 
 
 ## Show ecotypic classifications for both, the large dataset (ecotypes in grey colors) and the genotyped populations (ecotypes in rainbow colors).
