@@ -23,7 +23,7 @@ DougScaled[,c(8:13)] <- scale(Douglas[,c(8:13)])
 # data set presences - scaled
 DougScaledPres <- DougScaled[DougScaled$PRES==1,]
 
-load("Rdata/fgamSVCtrs2.Rdata")
+load("Rdata/fgamSVCtsr2.Rdata")
 load("Rdata/predTerms2.Rdata")
 
 countries <- map_data("world")
@@ -37,11 +37,9 @@ load("Rdata/states_mex.Rdata")
 #######################
 
 # in order to show variation and capture outliers, use quantile color classes.
-quantiles.1 <- classIntervals(scale(predTerms)[,2], 25, style="quantile")
-legend_labels.1 <- round(quantiles.1$brks[seq(1,26,length.out = 5)], 1)
-predTerms_cut.1 <- cut(scale(predTerms)[,2], breaks = quantiles.1$brks, include.lowest = TRUE)
-
-#preds <- (predTerms)[,1]
+quantiles.1 <- classIntervals(predTerms[,2], 25, style="quantile")
+legend_labels.1 <- round(quantiles.1$brks[c(2,25)], 1)
+predTerms_cut.1 <- cut(predTerms[,2], breaks = quantiles.1$brks, include.lowest = TRUE)
 
 pTD <- ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
@@ -50,7 +48,7 @@ pTD <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.1)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="TD ",low="#106607", high="#75F567", breaks= c(0,6.25,12.5,18.75,25),labels=c(as.character(legend_labels.1))) +
+  scale_colour_gradient(name="TD ",low="#106607", high="#75F567", breaks= c(1,25),labels=c(as.character(legend_labels.1))) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -59,7 +57,7 @@ pTD <- ggplot() +
 
 ## TD2 
 quantiles.2 <- classIntervals(predTerms[,3], 25, style="quantile")
-legend_labels.2 <- round(quantiles.2$brks[seq(1,26,length.out=5)], 1)
+legend_labels.2 <- round(quantiles.2$brks[c(1,25)], 1)
 predTerms_cut.2 <- cut(predTerms[,3], breaks = quantiles.2$brks, include.lowest = TRUE)
 
 pTD2 <- ggplot() + 
@@ -69,7 +67,7 @@ pTD2 <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.2)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="TD2 ",low="#106607", high="#75F567", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.2))+ 
+  scale_colour_gradient(name="TD2 ",low="#106607", high="#75F567", breaks= c(1,25),labels=as.character(legend_labels.2))+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -79,7 +77,7 @@ pTD2 <- ggplot() +
 
 ## PPTsm
 quantiles.3 <- classIntervals(predTerms[,4], 25, style="quantile")
-legend_labels.3 <- round(quantiles.3$brks[seq(1,26,length.out=5)], 1)
+legend_labels.3 <- round(quantiles.3$brks[c(1,25)], 1)
 predTerms_cut.3 <- cut(predTerms[,4], breaks = quantiles.3$brks, include.lowest = TRUE)
 
 pPPT <- ggplot() + 
@@ -89,7 +87,7 @@ pPPT <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.3)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="PPTsm ",low="#003366", high="#99CCFF", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.3))+ 
+  scale_colour_gradient(name="PPTsm ",low="#003366", high="#99CCFF", breaks= c(1,25),labels=as.character(legend_labels.3))+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -99,7 +97,7 @@ pPPT <- ggplot() +
 
 ## PPTsm2
 quantiles.4 <- classIntervals(predTerms[,5], 25, style="quantile")
-legend_labels.4 <- round(quantiles.4$brks[seq(1,26,length.out=5)], 1)
+legend_labels.4 <- round(quantiles.4$brks[c(1,25)], 1)
 predTerms_cut.4 <- cut(predTerms[,5], breaks = quantiles.4$brks, include.lowest = TRUE)
 
 pPPT2 <- ggplot() + 
@@ -109,7 +107,7 @@ pPPT2 <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.4)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="PPTsm2 ",low="#003366", high="#99CCFF", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.4))+ 
+  scale_colour_gradient(name="PPTsm2 ",low="#003366", high="#99CCFF", breaks= c(1,25),labels=as.character(legend_labels.4))+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -121,7 +119,7 @@ pPPT2 <- ggplot() +
 ## MWMT
 
 quantiles.5 <- classIntervals(predTerms[,6], 25, style="quantile")
-legend_labels.5 <- round(quantiles.5$brks[seq(1,26,length.out = 5)], 1)
+legend_labels.5 <- round(quantiles.5$brks[c(1,25)], 1)
 predTerms_cut.5 <- cut(predTerms[,6], breaks = quantiles.5$brks, include.lowest = TRUE)
 
 pMWMT <- ggplot() + 
@@ -131,7 +129,7 @@ pMWMT <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.5)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="MWMT ",low="#F53A14", high="#FDB6A7", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.5))+ 
+  scale_colour_gradient(name="MWMT ",low="#F53A14", high="#FDB6A7", breaks= c(1,25),labels=as.character(legend_labels.5))+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -139,7 +137,7 @@ pMWMT <- ggplot() +
         legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=9), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
 quantiles.6 <- classIntervals(predTerms[,7], 25, style="quantile")
-legend_labels.6 <- round(quantiles.6$brks[seq(1,26,length.out = 5)], 0)
+legend_labels.6 <- round(quantiles.6$brks[c(1,25)], 1)
 predTerms_cut.6 <- cut(predTerms[,7], breaks = quantiles.6$brks, include.lowest = TRUE)
 
 pMWMT2 <- ggplot() + 
@@ -149,7 +147,7 @@ pMWMT2 <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.6)), size = 0.05)  + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="MWMT2 ",low="#F53A14", high="#FDB6A7", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.6))+ 
+  scale_colour_gradient(name="MWMT2 ",low="#F53A14", high="#FDB6A7", breaks= c(1,25),labels=as.character(legend_labels.6))+ 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
