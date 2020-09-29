@@ -97,16 +97,19 @@ for (j in 1:6){
 df.all <- do.call(rbind, df.com)
 save(df.all, file="Rdata/effectplot_predictions_df2.Rdata")
 
-df.all$ID <- c("MWMT (?C)", "PPT_sm (mm)", "TD (?C)")[match(as.factor(df.all$ID), c("MWMT","PPT_sm","TD"))]
+load("Rdata/effectplot_predictions_df2.Rdata")
 
-pdf("figs/Effects.pdf", height = 12, width = 7)
+df.all$ID_f <- factor(df.all$ID, levels = c("MWMT","TD","PPT_sm"), labels = c("MTWM (°C)", "TD (°C)", "PPT_sm (mm)"))
+df.all$Cluster <- gsub(df.all$Cluster, pattern = "Cluster", replacement = "Ecotype")
+
+pdf("figures/Effects.pdf", height = 12, width = 7)
 
 ggplot(df.all) + ylim(0,1) + geom_path(aes(x=newseq, y=median, col=as.factor(Cluster))) + labs(y="Occurrence Probability")+
   geom_ribbon(aes(ymin = third, ymax = second, x=newseq), fill="grey50" , alpha=0.3) + 
   theme(aspect.ratio = 1, axis.title.x = element_blank(), strip.text.x = element_text(face="bold"),
         strip.text.y = element_text(face="bold"),panel.background = element_blank(), 
         legend.key = element_blank(), legend.position = "none") + 
-  facet_grid(Cluster~ID, scales="free_x") + 
+  facet_grid(Cluster~ID_f, scales="free_x") + 
   ggsci::scale_color_d3(name="Cluster")
 
 dev.off()

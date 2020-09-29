@@ -1,18 +1,9 @@
 require(ggplot2)
 require(classInt)
 
-# Prepare data
-Douglas <- read.csv("data/DF Plot Data (Norm_6190 Climate).csv")
-Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # replace incorrect value by mean of standardized data set for correct indexing in further procedure
-# or: Douglas <- na.omit(Douglas) ?
-Douglas <- na.omit(Douglas)
-row.names(Douglas) <- NULL # reset the rownames to length of dataframe
+source("utils.R")
 
-# data set with only presences - unscaled
-Douglas <- Douglas[,c(1:5,7, 9, 11, 15, 17)]
-Douglas$TD2 <- Douglas$TD^2
-Douglas$MWMT2 <- Douglas$MWMT^2
-Douglas$PPT_sm2 <- Douglas$PPT_sm^2
+Douglas <- get_Douglas_data()
 
 DougPres <- Douglas[Douglas$PRES==1,]
 
@@ -36,133 +27,147 @@ load("Rdata/states_mex.Rdata")
 ### Coefficient MAPS ##
 #######################
 
-# in order to show variation and capture outliers, use quantile color classes.
-quantiles.1 <- classIntervals(predTerms[,2], 25, style="quantile")
-legend_labels.1 <- round(quantiles.1$brks[c(2,25)], 1)
-predTerms_cut.1 <- cut(predTerms[,2], breaks = quantiles.1$brks, include.lowest = TRUE)
+coefficient_maps <- function(coefs){
+  
+  # in order to show variation and capture outliers, use quantile color classes.
+  quantiles.1 <- classIntervals(coefs[,2], 25, style="quantile")
+  legend_labels.1 <- round(quantiles.1$brks[seq(1,26,length.out = 5)], 0)
+  predTerms_cut.1 <- cut(coefs[,2], breaks = quantiles.1$brks, include.lowest = TRUE)
 
-pTD <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.1)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="TD ",low="#106607", high="#75F567", breaks= c(1,25),labels=c(as.character(legend_labels.1))) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pTD <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.1)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="TD ",low="#106607", high="#75F567", breaks= c(0,6.25,12.5,18.75,25),labels=c(as.character(legend_labels.1))) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=9), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
-## TD2 
-quantiles.2 <- classIntervals(predTerms[,3], 25, style="quantile")
-legend_labels.2 <- round(quantiles.2$brks[c(1,25)], 1)
-predTerms_cut.2 <- cut(predTerms[,3], breaks = quantiles.2$brks, include.lowest = TRUE)
+  ## TD2 
+  quantiles.2 <- classIntervals(coefs[,3], 25, style="quantile")
+  legend_labels.2 <- round(quantiles.2$brks[seq(1,26,length.out=5)], 0)
+  predTerms_cut.2 <- cut(coefs[,3], breaks = quantiles.2$brks, include.lowest = TRUE)
 
-pTD2 <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.2)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="TD2 ",low="#106607", high="#75F567", breaks= c(1,25),labels=as.character(legend_labels.2))+ 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pTD2 <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.2)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="TD2 ",low="#106607", high="#75F567", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.2))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=8), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
 
-## PPTsm
-quantiles.3 <- classIntervals(predTerms[,4], 25, style="quantile")
-legend_labels.3 <- round(quantiles.3$brks[c(1,25)], 1)
-predTerms_cut.3 <- cut(predTerms[,4], breaks = quantiles.3$brks, include.lowest = TRUE)
+  ## PPTsm
+  quantiles.3 <- classIntervals(coefs[,4], 25, style="quantile")
+  legend_labels.3 <- round(quantiles.3$brks[seq(1,26,length.out=5)], 0)
+  predTerms_cut.3 <- cut(coefs[,4], breaks = quantiles.3$brks, include.lowest = TRUE)
 
-pPPT <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") +
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.3)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="PPTsm ",low="#003366", high="#99CCFF", breaks= c(1,25),labels=as.character(legend_labels.3))+ 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pPPT <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") +
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.3)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="PPTsm ",low="#003366", high="#99CCFF", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.3))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=9), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
 
-## PPTsm2
-quantiles.4 <- classIntervals(predTerms[,5], 25, style="quantile")
-legend_labels.4 <- round(quantiles.4$brks[c(1,25)], 1)
-predTerms_cut.4 <- cut(predTerms[,5], breaks = quantiles.4$brks, include.lowest = TRUE)
+  ## PPTsm2
+  quantiles.4 <- classIntervals(coefs[,5], 25, style="quantile")
+  legend_labels.4 <- round(quantiles.4$brks[seq(1,26,length.out=5)], 0)
+  predTerms_cut.4 <- cut(coefs[,5], breaks = quantiles.4$brks, include.lowest = TRUE)
 
-pPPT2 <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.4)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="PPTsm2 ",low="#003366", high="#99CCFF", breaks= c(1,25),labels=as.character(legend_labels.4))+ 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pPPT2 <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.4)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="PPTsm2 ",low="#003366", high="#99CCFF", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.4))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=8), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
+## MTWM
 
+  quantiles.5 <- classIntervals(coefs[,6], 25, style="quantile")
+  legend_labels.5 <- round(quantiles.5$brks[seq(1,26,length.out = 5)], 0)
+  predTerms_cut.5 <- cut(coefs[,6], breaks = quantiles.5$brks, include.lowest = TRUE)
 
-## MWMT
-
-quantiles.5 <- classIntervals(predTerms[,6], 25, style="quantile")
-legend_labels.5 <- round(quantiles.5$brks[c(1,25)], 1)
-predTerms_cut.5 <- cut(predTerms[,6], breaks = quantiles.5$brks, include.lowest = TRUE)
-
-pMWMT <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.5)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="MWMT ",low="#F53A14", high="#FDB6A7", breaks= c(1,25),labels=as.character(legend_labels.5))+ 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pMTWM <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") + 
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.5)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="MTWM ",low="#F53A14", high="#FDB6A7", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.5))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=9), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank()) 
 
-quantiles.6 <- classIntervals(predTerms[,7], 25, style="quantile")
-legend_labels.6 <- round(quantiles.6$brks[c(1,25)], 1)
-predTerms_cut.6 <- cut(predTerms[,7], breaks = quantiles.6$brks, include.lowest = TRUE)
+  quantiles.6 <- classIntervals(coefs[,7], 25, style="quantile")
+  legend_labels.6 <- round(quantiles.6$brks[seq(1,26,length.out = 5)], 0)
+  predTerms_cut.6 <- cut(coefs[,7], breaks = quantiles.6$brks, include.lowest = TRUE)
 
-pMWMT2 <- ggplot() + 
-  geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") +
-  geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
-  geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
-  geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.6)), size = 0.05)  + 
-  coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_colour_gradient(name="MWMT2 ",low="#F53A14", high="#FDB6A7", breaks= c(1,25),labels=as.character(legend_labels.6))+ 
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+  pMTWM2 <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") +
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.6)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="MTWM2 ",low="#F53A14", high="#FDB6A7", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.6))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
         axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
-        legend.title = element_text(size=12, face="bold"),legend.text = element_text(size=8), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())
 
+  quantiles.7 <- classIntervals(coefs[,1], 25, style="quantile")
+  legend_labels.7 <- round(quantiles.7$brks[seq(1,26,length.out = 5)], 0)
+  predTerms_cut.7 <- cut(coefs[,1], breaks = quantiles.7$brks, include.lowest = TRUE)
 
-pdf("figures/coefsInSpaceB.pdf")
-ggpubr::ggarrange(pTD, pPPT, pMWMT, ncol = 3, nrow = 1)
-dev.off()  
+  pIntercept <- ggplot() + 
+    geom_polygon(data=northA, aes(x=long, y=lat, group=group), colour="grey47", fill="black") +
+    geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
+    geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
+    geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
+    geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=as.numeric(predTerms_cut.7)), size = 0.05)  + 
+    coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
+    scale_colour_gradient(name="Intercept  ",low="#f7e1c2", high="#784a09", breaks= c(0,6.25,12.5,18.75,25),labels=as.character(legend_labels.7))+ 
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        panel.border = element_rect(colour="grey45", fill=NA, size=1), 
+        panel.background = element_blank(), axis.title = element_blank(), 
+        axis.text = element_blank(), axis.ticks = element_blank(), legend.position = "bottom",
+        legend.title = element_text(size=13, face="bold"),legend.text = element_text(size=11), legend.key.size = unit(0.5, units = "cm"), legend.key = element_blank())
 
-pdf("figures/coefsInSpace-quadraticsB.pdf")
-ggpubr::ggarrange(pTD2, pPPT2, pMWMT2, ncol = 3, nrow = 1)
-dev.off()
+  ggpubr::ggarrange(pMTWM, pTD, pPPT, pMTWM2, pTD2, pPPT2, pIntercept, 
+                  ncol = 3, nrow = 3, hjust=-4)
+}
 
+coefficient_maps(predTerms)
 
 
 ## Remove ouliers before mapping ## 

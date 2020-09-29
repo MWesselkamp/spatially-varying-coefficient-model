@@ -10,20 +10,17 @@ require(clusteval) # cluster similarity
 require(mda) # discriminant function analysis
 require(corrplot) # correlation plot
 require(Hmisc) # varclus plot
- 
+
+source("utils.R")
+
+load("Rdata/states.Rdata")
+load("Rdata/states_mex.Rdata")
+load("Rdata/states_ca.Rdata")
 #=========================================#
 # Variable selection with stationary GAM  #
 #=========================================#
 
-Douglas <- read.csv("data/DF Plot Data (Norm_6190 Climate).csv")
-Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
-Douglas <- na.omit(Douglas)
-row.names(Douglas) <- NULL # reset the rownames to index
-Douglas$TD2 <- Douglas$TD^2
-Douglas$MWMT2 <- Douglas$MWMT^2
-Douglas$PPT_sm2 <- Douglas$PPT_sm^2
-Douglas$PPT_wt2 <- Douglas$PPT_wt^2
-Douglas$MDMP2 <- Douglas$MDMP^2
+Douglas <- get_DouglasFir_data()
 
 DouglasScaled = Douglas
 DouglasScaled[,c(10:22, 37:43)] = scale(DouglasScaled[,c(10:22,37:43)])
@@ -36,9 +33,6 @@ DouglasSample = Douglas[sample(nrow(Douglas), 10000),]
 
 countries <- map_data("world")
 northA <- subset(countries, region %in% c("USA", "Mexico", "Canada") & long < 170)
-load("Rdata/states.Rdata")
-load("Rdata/states_mex.Rdata")
-load("Rdata/states_ca.Rdata")
 
 ggplot() + 
   geom_polygon(data=northA, aes(x=long, y=lat, group=group), fill="grey70") +
@@ -178,7 +172,7 @@ p4 <- ggplot() +
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
   geom_point(data=DougScaledPres, aes(x=Long, y=Lat, col=factor(useCluster)), size=1.0) + 
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
-  scale_color_manual(values = c(col.12), name = "Ecotypes")+
+  scale_color_manual(values = c(col.6), name = "Ecotypes")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
         panel.border = element_rect(colour="grey45", fill=NA, size=1), 
         panel.background = element_blank(), axis.title = element_blank(), 
@@ -224,14 +218,6 @@ dev.off()
 # Cluster similarities     #
 ############################
 
-confusion_matrix = function(genotype, ecotype){
-  mat = matrix(0, nrow=length(unique(ecotype)), ncol=length(unique(genotype)))
-  for (i in 1:length(ecotype)){
-    mat[ecotype[i], genotype[i]] = mat[ecotype[i], genotype[i]]+1
-  }
-  return(mat)
-}
-
 ## Confusion of neutral clusters and ecotypic clusters
 load("clusters2.Rdata")
 nclust <- clustered.predictionsN[[12]]$cluster
@@ -252,28 +238,7 @@ cluster_similarity(as.numeric(DougScaledPres$POP)-1, nclust, similarity=c("rand"
 
 ## Cluster similarity: Ecotypes/neutral model and Rehfeldt genotypes ##
 confusion_matrix(as.numeric(DNAdata$Genotype), eclust)
-
-
-# percentage of ecotypic presences assigned to neutral cluster
-
-inpercentageRows = function(m, sums){
-  for(i in 1:nrow(m)){
-    m[i,] = round((m[i,]/sums[i])*100, 2)
-  }
-  return(m)
-}
-
 inpercentageRows(cn, sums=rowSums((cn)))
-
-# percentage of neutral clusters assigned to ecotypes
-
-inpercentageCols = function(m, sums){
-  for(i in 1:ncol(m)){
-    m[,i] = round((m[,i]/sums[i])*100, 2)
-  }
-  return(m)
-}
-
 inpercentageCols(cn, sums=colSums((cn)))
 
 # confusion of "true" ecotypes with genoptypes
@@ -288,19 +253,13 @@ inpercentageRows(cm2, rowSums(cm2))
 # Determine number of clusters #
 ################################
 
-wss = numeric(14)
-for (i in 1:14){
-  wss[i] = clusters2[[i+1]]$tot.withinss  
-}
-plot(1:14, wss, type="b", xlab="Number of Clusters",
-     ylab="Within groups sum of squares")
-
+plot_wss(clusters2)
 
 #########################################
 # Validation with genotypes (Wei et al.)#
 #########################################
 
-DNAdata = read.csv("~/ScAdditional/PaperSVCM/data/Doug-Fir DNA data (Wei et al, 2011).csv")
+DNAdata <- get_DNA_data()
 
 load("Rdata/clusters2.Rdata")
 Ecoclusters_all = clusters2[[6]]$cluster
@@ -316,7 +275,7 @@ pDNA = ggplot() +
   geom_path(data= states, aes(x=long, y=lat, group=group), col="grey25") + 
   geom_path(data=ca_provinces,aes(x=long, y=lat, group=group), col="grey25")  + 
   geom_path(data=mex_states, aes(x=long, y=lat, group=group), col="grey25") +
-  geom_point(data = DouglasScaledPres, aes(x=Long, y=Lat, col=factor(POP)), size=0.8, alpha=1) + 
+  geom_point(data = DougScaledPres, aes(x=Long, y=Lat, col=factor(POP)), size=0.8, alpha=1) + 
   geom_point(data=DNAdata, aes(x=Longitude, y=Latitude, col="white", fill=factor(Genotype)), size=1.2, shape=21) +
   coord_fixed(ratio=1, xlim = c(-130, -95), ylim=c(15, 55)) + 
   scale_color_manual(values = c(greys, "black"), guide = FALSE) +
@@ -329,38 +288,12 @@ pDNA = ggplot() +
   guides(fill = guide_legend(override.aes = list(size=2)))
 
 
-## Extract BIOCLIM variables for 44 genotypes populations.
-
-bioclim = getData("worldclim", var="bio", lon=DNAdata$Longitude, lat=DNAdata$Latitude,res=0.5)
-mypoints = data.frame(long=DNAdata$Longitude, lat=DNAdata$Latitude)
-myvars = as.data.frame(extract(bioclim, mypoints))
-myvars_small = data.frame(TD = myvars$bio7/10, MWMT = myvars$bio10/10, PPT_sm = myvars$bio18)
-
-## prepare data for SVCM
-DNAdata = cbind(DNAdata, myvars_small)
-DNAdata$TD2 = DNAdata$TD^2
-DNAdata$MWMT2 = DNAdata$MWMT^2
-DNAdata$PPT_sm2 = DNAdata$PPT_sm^2
-
-DNAdata_scaled = DNAdata
-DNAdata_scaled[,(12:17)] = scale(DNAdata_scaled[,(12:17)])
-
-## convert latitude and longitude to UTM coordinates.
-xy = data.frame(x = DNAdata_scaled[,5], y = DNAdata_scaled[,4])
-coordinates(xy) = c("x", "y")
-proj4string(xy) = CRS("+proj=longlat +datum=WGS84")
-res = spTransform(xy, "+proj=utm +datum=WGS84")
-
-DNAdata_scaled = cbind(DNAdata_scaled, res@coords)
-DNAdata = cbind(DNAdata, res@coords)
-
-save(DNAdata, file="Rdata/DNAdata.Rdata")
-save(DNAdata_scaled, file="Rdata/DNAdata_scaled.Rdata")
 
 ## Predict with fitted model to populations, apply k-means and compare genotypes and ecotypes.
 
 load("Rdata/fgamSVCtsr2.Rdata")
 
+DNAdata_scaled <- scale(DNAdata[,12:17])
 preds = predict(fgamSVCtrs2, DNAdata_scaled, type="response")
 predTermsDNA = predict(fgamSVCtrs2, DNAdata_scaled, type="terms")
 Ecoclusters_Wei = kmeans(predTermsDNA, centers = 6, nstart = 25)
