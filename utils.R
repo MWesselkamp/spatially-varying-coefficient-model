@@ -5,7 +5,7 @@ library(maps)
 library(raster)
 library(rgdal)
 
-get_DouglasFir_data <- function(){
+get_Douglas_data <- function(){
   
   Douglas <- read.csv("data/DF Plot Data (Norm_6190 Climate).csv")
   Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
@@ -68,6 +68,25 @@ get_DNA_data <- function(){
   
   return(DNAdata)
 }
+
+
+kmeans_clustering = function(coeffs, n_clusters){
+  
+  clustered.predictions <- vector(mode = "list", length = n_clusters)
+  
+  for (i in 1:length(clustered.predictions)){
+    clustered.predictions[[i]] <- kmeans(coeffs, centers=i, nstart=25)
+  }
+  
+  wss = numeric(length(clustered.predictions))
+  for (i in 2:length(clustered.predictions)){
+    wss[i] = clustered.predictions[[i]]$tot.withinss/clustered.predictions[[i]]$totss
+  }
+  plot(2:length(clustered.predictions)+1, wss[2:length(clustered.predictions)+1], type="b", ylim=c(0,1), xlab="Number of Clusters", ylab="Total within groups sum of squares")
+  return(clustered.predictions)
+  
+}
+
 
 confusion_matrix = function(genotype, ecotype){
   
