@@ -1,6 +1,6 @@
 require(mgcv)
 
-setwd("~/ScAdditional/PaperSVCM")
+setwd("~/Documents/Projects/Spatially-varying-coefficient-model")
 
 source("utils.R")
 source("plots.R")
@@ -15,7 +15,7 @@ DougPres <- Douglas[Douglas$PRES==1,]
 
 # data set complete - scaled
 DougScaled <- Douglas
-DougScaled[,c(8:13)] <- scale(Douglas[,c(8:13)])
+DougScaled[,c(10:22)] <- scale(Douglas[,c(10:22)])
 
 # data set presences - scaled
 DougScaledPres <- DougScaled[DougScaled$PRES==1,]
@@ -35,22 +35,19 @@ pca.predss$rotation
 pca.Doug$rotation
 
 
-
 ## Spatially varying coefficient model ##
 #########################################
-fit_SVCM <- function(data = DougScaled, grs = c("x", "y")){
-  
-  # grs either one of  c("x", "y") or  c("Lat", "Long")
-  
-  Lat = data[grs[1]]
-  Long = data[grs[2]]
 
-  fgamSVCtsr <- gam(PRES ~ s(Lat, Long, k=100) + s(Lat, Long, by=TD, k=100) + s(Lat, Long, by=TD2, k=100) + s(Lat, Long, by= PPT_sm, k=100) + s(Lat, Long, by=PPT_sm2, k=100) + s(Lat, Long, by=MWMT, k=100) + s(Lat, Long, by=MWMT2, k=100), method="ML", family=binomial, control=gam.control(maxit=1000), data=DougScaled)
+fgamSVCtsr <- gam(PRES ~ s(y, x, k=100) + s(y, x, by=TD, k=100) + 
+                    s(y, x, by=TD2, k=100) + s(y, x, by= PPT_sm, k=100) + 
+                    s(y, x, by=PPT_sm2, k=100) + s(y, x, by=MWMT, k=100) + 
+                    s(y, x, by=MWMT2, k=100), 
+                  method="ML", family=binomial, control=gam.control(maxit=1000), 
+                  data=Douglas)
 
-  save(fgamSVCtrs, file="Rdata/fgamSVCtsr.Rdata")
-  summary(fgamSVCtsr)
+save(fgamSVCtrs, file="Rdata/fgamSVCtsr3.Rdata")
+summary(fgamSVCtsr)
 
-  }
 # grs = c("Lat", "Long"): load("Rdata/fgamSVCtsr.Rdata")
 # grs = c("x", "y"):
 load("Rdata/fgamSVCtsr2.Rdata")
@@ -69,7 +66,10 @@ save(predTerms, file="Rdata/predTerms2.Rdata")
 
 load("Rdata/predTerms2.Rdata")
 summary(predTerms)
+load("Rdata/predTermsN.Rdata")
+summary(predTermsN)
 
+predTermsF <- sqrt((predTerms-predTermsN)^2)
 #===================#
 # kmeans clustering #
 #===================#
@@ -78,7 +78,7 @@ clustered.predictions = kmeans_clustering(predTerms, 15)
 
 which.max(sapply(clustered.predictions, function(x) x$tot.withinss/x$totss))
 
-useCluster = clustered.predictions[[12]]$cluster
+useCluster = clustered.predictions[[6]]$cluster
 xtable::xtable(confusion_matrix(DougPres$POP, useCluster), digits=0)
 
 #==============#
@@ -87,7 +87,7 @@ xtable::xtable(confusion_matrix(DougPres$POP, useCluster), digits=0)
 
 # LOAD TO REPRODUCE FIGURES
 load("Rdata/clusters2.Rdata")
-useCluster = clusters2[[6]]$cluster
+useCluster = clusters2[[3]]$cluster
 load("Rdata/allPreds2.Rdata")
 
 x <- c("maps", "ggplot2")
@@ -110,7 +110,7 @@ p3 = DNA_types(DougScaledPres, DNAdata)
 
 ## PLOT Cluster ##
 
-p4 = Ecotypes(DougScaledPres, useCluster)
+p4 = Ecotypes(DougScaledPres, useCluster, n_colors = 6)
 
  
 pdf("figures/Overview.pdf", width = 9, height = 9)
