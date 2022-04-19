@@ -56,9 +56,6 @@ fgamSVCtrs <- gam(PRES ~ s(y, x, bs = "ts", k=100) + s(y, x, by=TD, bs = "ts", k
 save(fgamSVCtrs, file="Rdata/fgamSVCtrs3.Rdata")
 summary(fgamSVCtsr)
 
-# grs = c("Lat", "Long"): load("Rdata/fgamSVCtsr.Rdata")
-# grs = c("x", "y"):
-
 #==================================#
 # Load a varying coefficient model #
 #==================================#
