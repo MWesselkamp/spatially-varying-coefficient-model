@@ -7,7 +7,7 @@ library(rgdal)
 
 get_Douglas_data <- function(){
   
-  Douglas <- read.csv("data/DF Plot Data (Norm_6190 Climate).csv")
+  Douglas <- read.csv("data/DF_Plot_Data_Norm_6190.csv")
   Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
   Douglas <- na.omit(Douglas)
   row.names(Douglas) <- NULL # reset the rownames to index

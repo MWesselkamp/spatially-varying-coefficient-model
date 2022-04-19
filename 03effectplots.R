@@ -1,8 +1,30 @@
 #library(doSNOW)
 library(mgcv)
 
-load("Rdata/clusters_EN.Rdata")
-load("Rdata/fgamSVCtsr2.Rdata")
+mod = "basic"
+
+if (mod == "ref"){
+  load("Rdata/clustersr.Rdata")
+  load("Rdata/fgamtrs.Rdata")
+  p=""
+}else if (mod=="basic"){
+  load("Rdata/clusters2.Rdata")
+  load("Rdata/fgamSVCtrs2.Rdata")
+  p=2
+}else if (mod=="non-standardized"){
+  load("Rdata/clusters3.Rdata")
+  load("Rdata/fgamSVCtrs3.Rdata")
+  p=3
+}else if (mod=="scaled-location"){
+  load("Rdata/clusters4.Rdata")
+  load("Rdata/fgamSVCtrs4.Rdata")
+  p=4
+}else if (mod=="neutral"){
+  load("Rdata/clustersN.Rdata")
+  load("Rdata/fgamSVCtrsN.Rdata")
+  p="N"
+}
+
 load("Rdata/DougScaled.Rdata")
 load("Rdata/Douglas.Rdata")
 
@@ -10,18 +32,53 @@ source("utils.R")
 
 newTD <- seq(min(Douglas$TD), max(Douglas$TD), len=100)
 newTD2 <- newTD^2
-newTDscaled <- (newTD - mean(Douglas$TD))/sd(Douglas$TD)
-newTD2scaled <- (newTD2 - mean(Douglas$TD^2))/sd(Douglas$TD^2)
 
 newPPTsm <- seq(min(Douglas$PPT_sm), max(Douglas$PPT_sm), len=100)
 newPPTsm2 <- newPPTsm^2
-newPPTsmscaled <- (newPPTsm - mean(Douglas$PPT_sm))/sd(Douglas$PPT_sm)
-newPPTsm2scaled <- (newPPTsm2 - mean(Douglas$PPT_sm^2))/sd(Douglas$PPT_sm^2)
 
 newMWMT <- seq(min(Douglas$MWMT), max(Douglas$MWMT), len=100)
 newMWMT2 <- newMWMT^2
-newMWMTscaled <- (newMWMT - mean(Douglas$MWMT))/sd(Douglas$MWMT)
-newMWMT2scaled <- (newMWMT2 - mean(Douglas$MWMT^2))/sd(Douglas$MWMT^2)
+
+useCluster <- clusters[[6]]$cluster
+
+if (mod=="basic"){
+  
+  newTDscaled <- (newTD - mean(Douglas$TD))/sd(Douglas$TD)
+  newTD2scaled <- (newTD2 - mean(Douglas$TD^2))/sd(Douglas$TD^2)
+  
+  newPPTsmscaled <- (newPPTsm - mean(Douglas$PPT_sm))/sd(Douglas$PPT_sm)
+  newPPTsm2scaled <- (newPPTsm2 - mean(Douglas$PPT_sm^2))/sd(Douglas$PPT_sm^2)
+  
+  newMWMTscaled <- (newMWMT - mean(Douglas$MWMT))/sd(Douglas$MWMT)
+  newMWMT2scaled <- (newMWMT2 - mean(Douglas$MWMT^2))/sd(Douglas$MWMT^2)
+  
+} else if (mod=="scaled-location"){
+  
+    newTDscaled <- (newTD - mean(Douglas$TD))/sd(Douglas$TD)
+    newTD2scaled <- (newTD2 - mean(Douglas$TD^2))/sd(Douglas$TD^2)
+    
+    newPPTsmscaled <- (newPPTsm - mean(Douglas$PPT_sm))/sd(Douglas$PPT_sm)
+    newPPTsm2scaled <- (newPPTsm2 - mean(Douglas$PPT_sm^2))/sd(Douglas$PPT_sm^2)
+    
+    newMWMTscaled <- (newMWMT - mean(Douglas$MWMT))/sd(Douglas$MWMT)
+    newMWMT2scaled <- (newMWMT2 - mean(Douglas$MWMT^2))/sd(Douglas$MWMT^2)
+    
+    DougScaled$x <- (DougScaled$x - min(DougScaled$x))
+    DougScaled$y <- (DougScaled$y - min(DougScaled$y))
+
+} else if (mod=="non-standardized"){
+  
+  newTDscaled <- newTD
+  newTD2scaled <- newTD2
+  
+  newPPTsmscaled <- newPPTsm
+  newPPTsm2scaled <- newPPTsm2
+  
+  newMWMTscaled <- newMWMT
+  newMWMT2scaled <- newMWMT2
+  
+  DougScaled <- Douglas
+}
 
 
 compute_response_curves = function(j){
@@ -34,7 +91,7 @@ compute_response_curves = function(j){
   for (i in 1:length(clustmembers)){
   
     newTDdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=newTDscaled, TD2=newTD2scaled, PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
-    effTD1[[i]] <- predict.gam(fgamSVCtrs2, newdata = newTDdata, type="response")
+    effTD1[[i]] <- predict.gam(fgamSVCtrs, newdata = newTDdata, type="response")
   
   }
 
@@ -52,7 +109,7 @@ compute_response_curves = function(j){
   for (i in 1:length(clustmembers)){
     
     newPPTsmdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=newPPTsmscaled, PPT_sm2=newPPTsm2scaled, MWMT=mean(DougScaled$MWMT[clustmembers]), MWMT2=mean(DougScaled$MWMT2[clustmembers]))
-    effPPTsm[[i]] <- predict.gam(fgamSVCtrs2, newdata = newPPTsmdata, type="response")
+    effPPTsm[[i]] <- predict.gam(fgamSVCtrs, newdata = newPPTsmdata, type="response")
     
   }
   
@@ -69,7 +126,7 @@ compute_response_curves = function(j){
 
   for (i in 1:length(clustmembers)){
     newMWMTdata <- data.frame(y=DougScaled$y[clustmembers[i]], x=DougScaled$x[clustmembers[i]], TD=mean(DougScaled$TD[clustmembers]), TD2=mean(DougScaled$TD2[clustmembers]), PPT_sm=mean(DougScaled$PPT_sm[clustmembers]), PPT_sm2=mean(DougScaled$PPT_sm2[clustmembers]), MWMT=newMWMTscaled, MWMT2=newMWMT2scaled)
-    effMWMT[[i]] <- predict.gam(fgamSVCtrs2, newdata = newMWMTdata, type="response")
+    effMWMT[[i]] <- predict.gam(fgamSVCtrs, newdata = newMWMTdata, type="response")
   
   }
 
@@ -93,7 +150,9 @@ for (i in 1:6){
 }
 
 df = do.call(rbind, df.com)
-save(df, file="Rdata/effectplots_EN.Rdata")
+summary(df)
+
+save(df, file=paste0("Rdata/effectplots", p, ".Rdata"))
 
 #cores = 12
 #c1 <- makeCluster(cores)
@@ -102,3 +161,6 @@ save(df, file="Rdata/effectplots_EN.Rdata")
 #save(res, file="Rdata/effectplot_predictions_df2.Rdata")
 #stopCluster(c1)
 
+
+source("plots.R")
+effectplots(df, var= "effectplots4")

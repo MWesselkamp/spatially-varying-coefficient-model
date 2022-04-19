@@ -16,10 +16,18 @@ DougPres <- Douglas[Douglas$PRES==1,]
 # data set complete - scaled
 DougScaled <- Douglas
 DougScaled[,c(10:22)] <- scale(Douglas[,c(10:22)])
+summary(DougScaled)
+
+DougScaled4 <- DougScaled
+DougScaled4$x <- DougScaled4$x-min(DougScaled4$x)
+DougScaled4$y <- DougScaled4$y-min(DougScaled4$y)
 
 # data set presences - scaled
 DougScaledPres <- DougScaled[DougScaled$PRES==1,]
 
+
+DougSample <- DougPres[sample(1:nrow(DougPres), size=500),]
+  
 # PCA 
 par(mfrow=c(1,4))
 pca.Doug <- prcomp((Douglas[,c(8:13)]))
@@ -38,57 +46,126 @@ pca.Doug$rotation
 ## Spatially varying coefficient model ##
 #########################################
 
-fgamSVCtsr <- gam(PRES ~ s(y, x, k=100) + s(y, x, by=TD, k=100) + 
-                    s(y, x, by=TD2, k=100) + s(y, x, by= PPT_sm, k=100) + 
-                    s(y, x, by=PPT_sm2, k=100) + s(y, x, by=MWMT, k=100) + 
-                    s(y, x, by=MWMT2, k=100), 
+fgamSVCtrs <- gam(PRES ~ s(y, x, bs = "ts", k=100) + s(y, x, by=TD, bs = "ts", k=100) + 
+                    s(y, x, by=TD2, bs ="ts", k=100) + s(y, x, by= PPT_sm, bs = "ts", k=100) + 
+                    s(y, x, by=PPT_sm2, bs = "ts", k=100) + s(y, x, by=MWMT, bs = "ts", k=100) + 
+                    s(y, x, by=MWMT2, bs = "ts", k=100), 
                   method="ML", family=binomial, control=gam.control(maxit=1000), 
                   data=Douglas)
 
-save(fgamSVCtrs, file="Rdata/fgamSVCtsr3.Rdata")
+save(fgamSVCtrs, file="Rdata/fgamSVCtrs3.Rdata")
 summary(fgamSVCtsr)
 
 # grs = c("Lat", "Long"): load("Rdata/fgamSVCtsr.Rdata")
 # grs = c("x", "y"):
-load("Rdata/fgamSVCtsr2.Rdata")
+
+#==================================#
+# Load a varying coefficient model #
+#==================================#
+
+mod = "scaled-location"
+  
+if (mod == "ref"){
+  load("Rdata/fgamtrs.Rdata")
+  p = "r"
+  
+  # predicted occurance probabilities
+  allPreds <- predict(fgamtrs, newdata=DougScaled, type="response")
+  save(allPreds, file=paste0("Rdata/allPreds", p, ".Rdata"))
+  
+  # model coefficients at presence observations
+  predTerms <- predict(fgamtrs, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
+  save(predTerms, file=paste0("Rdata/predTerms", p, ".Rdata"))
+  
+}else if (mod=="basic"){
+  load("Rdata/fgamSVCtrs2.Rdata")
+  p = 2
+  
+  # predicted occurance probabilities
+  allPreds <- predict(fgamSVCtrs, newdata=DougScaled, type="response")
+  save(allPreds, file=paste0("Rdata/allPreds", p, ".Rdata"))
+  # model coefficients at presence observations
+  predTerms <- predict(fgamSVCtrs, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
+  save(predTerms, file=paste0("Rdata/predTerms", p, ".Rdata"))
+  
+}else if (mod=="non-standardized"){
+  load("Rdata/fgamSVCtrs3.Rdata")
+  p = 3
+  
+  # predicted occurance probabilities
+  allPreds <- predict(fgamSVCtrs, newdata=Douglas, type="response")
+  save(allPreds, file=paste0("Rdata/allPreds", p, ".Rdata"))
+  # model coefficients at presence observations
+  predTerms <- predict(fgamSVCtrs, newdata=Douglas[Douglas$PRES==1,], type="terms")
+  save(predTerms, file=paste0("Rdata/predTerms", p, ".Rdata"))
+  
+}else if (mod=="scaled-location"){
+  load("Rdata/fgamSVCtrs4.Rdata")
+  p = 4
+  
+  # predicted occurance probabilities
+  allPreds <- predict(fgamSVCtrs, newdata=DougScaled, type="response")
+  save(allPreds, file=paste0("Rdata/allPreds", p, ".Rdata"))
+  # model coefficients at presence observations
+  predTerms <- predict(fgamSVCtrs, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
+  save(predTerms, file=paste0("Rdata/predTerms", p, ".Rdata"))
+  
+}else if (mod=="neutral"){
+  load("Rdata/fgamSVCtrsN.Rdata")
+  p = "N"
+  # predicted occurance probabilities
+  allPreds <- predict(fgamSVCtrs, newdata=DougScaled, type="response")
+  save(allPreds, file=paste0("Rdata/allPreds", p, ".Rdata"))
+  
+  # model coefficients at presence observations
+  predTerms <- predict(fgamSVCtrs, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
+  save(predTerms, file=paste0("Rdata/predTerms", p, ".Rdata"))
+}
+
 
 #TABLE OF MODEL SUMMARY
-anova(fgamSVCtrs2)
+anova(fgamSVCtrs)
 xtable(summary(fgamSVCtrs2)$s.table, digits = 2)
-
-# predicted occurance probabilities
-allPreds <- predict(fgamSVCtsr, newdata=DougScaled, type="response")
-save(allPreds, file="Rdata/allPreds2.Rdata")
-
-# model coefficients at presence observations
-predTerms <- predict(fgamSVCtsr, newdata=DougScaled[DougScaled$PRES==1,], type="terms")
-save(predTerms, file="Rdata/predTerms2.Rdata")
-
-load("Rdata/predTerms2.Rdata")
 summary(predTerms)
-load("Rdata/predTermsN.Rdata")
-summary(predTermsN)
 
+
+# Analyse neutral predictions
 predTermsF <- sqrt((predTerms-predTermsN)^2)
+
 #===================#
 # kmeans clustering #
 #===================#
 
-clustered.predictions = kmeans_clustering(predTerms, 15)
+if (mod == "ref"){
+  load("Rdata/fgamtrs.Rdata")
+}else if (mod=="basic"){
+  load("Rdata/predTerms2.Rdata")
+}else if (mod=="non-standardized"){
+  load("Rdata/predTerms3.Rdata")
+}else if (mod=="scaled-location"){
+  load("Rdata/predTerms4.Rdata")
+}else if (mod=="neutral"){
+  load("Rdata/predTermsN.Rdata")
+}
 
-which.max(sapply(clustered.predictions, function(x) x$tot.withinss/x$totss))
 
-useCluster = clustered.predictions[[6]]$cluster
-xtable::xtable(confusion_matrix(DougPres$POP, useCluster), digits=0)
+# Cluster without intercept.
+clusters = kmeans_clustering(scale(predTerms[,2:7]), 15)
+which.max(sapply(clusters, function(x) x$tot.withinss/x$totss))
+
+save(clusters, file=paste0("Rdata/clusters", p, ".Rdata"))
 
 #==============#
 # Overview fig #
 #==============#
 
 # LOAD TO REPRODUCE FIGURES
-load("Rdata/clusters2.Rdata")
-useCluster = clusters2[[3]]$cluster
-load("Rdata/allPreds2.Rdata")
+load(paste0("Rdata/clusters", p, ".Rdata"))
+useCluster = clusters[[6]]$cluster
+
+xtable::xtable(confusion_matrix(DougPres$POP, useCluster), digits=0)
+
+load(paste0("Rdata/allPreds", p, ".Rdata"))
 
 x <- c("maps", "ggplot2")
 lapply(x, library, character.only=TRUE)
@@ -110,8 +187,8 @@ p3 = DNA_types(DougScaledPres, DNAdata)
 
 ## PLOT Cluster ##
 
-p4 = Ecotypes(DougScaledPres, useCluster, n_colors = 6)
-
+p4 = Ecotypes(DougScaledPres, useCluster, n_colors = 12)
+p4
  
 pdf("figures/Overview.pdf", width = 9, height = 9)
 ggpubr::ggarrange(p2, p1, p3, p4,ncol = 2, nrow = 2, hjust=-4, labels= c("a", "b", "c", "d"))
