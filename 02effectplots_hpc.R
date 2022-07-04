@@ -24,10 +24,23 @@ if (mod == "ref"){
   p="N"
 }
 
-load("Rdata/DougScaled.Rdata")
-load("Rdata/Douglas.Rdata")
 
-source("utils.R")
+Douglas <- read.csv("data/DF_Plot_Data_Norm_6190.csv")
+Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
+Douglas <- na.omit(Douglas)
+row.names(Douglas) <- NULL # reset the rownames to index
+Douglas$TD2 <- Douglas$TD^2
+Douglas$MWMT2 <- Douglas$MWMT^2
+Douglas$PPT_sm2 <- Douglas$PPT_sm^2
+Douglas$PPT_wt2 <- Douglas$PPT_wt^2
+Douglas$MDMP2 <- Douglas$MDMP^2
+
+# data set complete - scaled
+DougScaled <- Douglas
+DougScaled[,c(10:22)] <- scale(Douglas[,c(10:22)])
+
+
+#source("utils.R")
 
 newTD <- seq(min(Douglas$TD), max(Douglas$TD), len=100)
 newTD2 <- newTD^2
@@ -141,7 +154,6 @@ compute_response_curves = function(j){
   
 }
 
-useCluster <- clustered.predictions[[6]]$cluster
 df.com <- vector(mode = "list", length=6)
 
 for (i in 1:6){

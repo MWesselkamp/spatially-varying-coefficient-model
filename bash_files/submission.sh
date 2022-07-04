@@ -2,7 +2,7 @@
 
 cd ./svcm
 
-input=("" "2" "3" "4")
+input=("1" "2" "3" "4")
 
 for i in ${input[*]}
 do

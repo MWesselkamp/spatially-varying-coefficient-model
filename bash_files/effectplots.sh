@@ -2,13 +2,13 @@
 ########## Begin MOAB/Slurm header ##########
 #
 # Give job a reasonable name
-#MOAB -N svcm3
+#MOAB -N effectplots
 #
 # Request number of nodes and CPU cores per node for job
 #MOAB -l nodes=1:ppn=20
 #
 # Estimated wallclock time for job
-#MOAB -l walltime=01:00:00:00
+#MOAB -l walltime=02:00:00:00
 #
 # Write standard output and errors in same file
 #MOAB -j oe 
@@ -29,4 +29,6 @@ echo "Number of cores allocated to job:     $MOAB_PROCCOUNT"
 # Setup R
 module load math/R/3.4.4
 
-Rscript ~/Spatially-varying-coefficient-model/compute_svcm_hpc3.R
+cd ~/Spatially-varying-coefficient-model
+
+Rscript ~/Spatially-varying-coefficient-model/03effectplots_hpc.R

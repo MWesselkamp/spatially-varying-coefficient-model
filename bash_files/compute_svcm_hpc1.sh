@@ -2,7 +2,7 @@
 ########## Begin MOAB/Slurm header ##########
 #
 # Give job a reasonable name
-#MOAB -N svcm3
+#MOAB -N svcm1
 #
 # Request number of nodes and CPU cores per node for job
 #MOAB -l nodes=1:ppn=20
@@ -29,4 +29,4 @@ echo "Number of cores allocated to job:     $MOAB_PROCCOUNT"
 # Setup R
 module load math/R/3.4.4
 
-Rscript ~/Spatially-varying-coefficient-model/compute_svcm_hpc3.R
+Rscript ~/Spatially-varying-coefficient-model/compute_svcm_hpc.R
