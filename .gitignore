@@ -5,16 +5,18 @@
 .RData
 .DS_Store
 
-/data
-/Rdata
-/shell_scripts
-/hpc_scripts
-/reading
-/wc5
-/latex_doc
-/revisions
+data/
+Rdata/
+shell_scripts/
+hpc_scripts/
+reading/
+wc5/
+latex_doc/
+revisions/
 
-/plots
+plots/
 
 Rdata/
 data/
+rcode_optima/
+text/
