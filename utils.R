@@ -3,11 +3,10 @@
 #===================#
 library(maps)
 library(raster)
-library(rgdal)
 
 get_Douglas_data <- function(){
   
-  Douglas <- read.csv("data/DF_Plot_Data_Norm_6190.csv")
+  Douglas <- read.csv("~/Library/Mobile Documents/com~apple~CloudDocs/Projects/Spatially-varying-coefficient-model/data/DF_Plot_Data_Norm_6190.csv")
   Douglas$PPT_sm[which(Douglas$PPT_sm == -1)] <- NA # remove incorrect value 
   Douglas <- na.omit(Douglas)
   row.names(Douglas) <- NULL # reset the rownames to index
@@ -16,7 +15,11 @@ get_Douglas_data <- function(){
   Douglas$PPT_sm2 <- Douglas$PPT_sm^2
   Douglas$PPT_wt2 <- Douglas$PPT_wt^2
   Douglas$MDMP2 <- Douglas$MDMP^2
+  Douglas$y <- (Douglas$y-min(Douglas$y))/1000 # center at 0 and transform from m to km
+  Douglas$x <- (Douglas$x-min(Douglas$x))/1000  # center at 0 and transform from m to km
   
+  Douglas <- Douglas[,c(1:9,11,15,17,18,19,37:41)]
+
   return(Douglas)
 }
 
@@ -58,11 +61,13 @@ get_DNA_data <- function(){
   DNAdata$MWMT2 = DNAdata$MWMT^2
   DNAdata$PPT_sm2 = DNAdata$PPT_sm^2
   
+  DNAdata_scaled <- DNAdata
+  DNAdata_scaled[,c(12:17)] <- scale(DNAdata_scaled[,c(12:17)])
   ## convert latitude and longitude to UTM coordinates.
   xy = data.frame(x = DNAdata_scaled[,5], y = DNAdata_scaled[,4])
   coordinates(xy) = c("x", "y")
   proj4string(xy) = CRS("+proj=longlat +datum=WGS84")
-  res = spTransform(xy, "+proj=utm +datum=WGS84")
+  res = spTransform(xy, CRS(paste0("+proj=utm +zone=10 +datum=WGS84")))
 
   DNAdata = cbind(DNAdata, res@coords)
   
@@ -92,7 +97,12 @@ confusion_matrix = function(genotype, ecotype){
   
   if(is.factor(genotype)){
     genotype = as.integer(genotype)-1
+  }else{
+    genotype = as.integer(as.factor(genotype))
   }
+  print(unique(genotype))
+  print(unique(ecotype))
+  
   mat = matrix(0, nrow=length(unique(ecotype)), ncol=length(unique(genotype)))
   
   for (i in 1:length(ecotype)){
