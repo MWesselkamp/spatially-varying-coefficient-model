@@ -34,6 +34,8 @@ pdf(file = "plots/coeffient_maps.pdf", width = 10, height = 10)
 coefficient_maps(predTerms, dat=DougPres)
 dev.off()
 
+
+
 ## Remove ouliers before mapping ## 
 ###################################
 predTerms.e <- cbind(DougScaledPres[,c(4:5)], predTerms)
@@ -159,6 +161,6 @@ pMWMTr2 <- ggplot() +
         plot.margin = margin(0.5,0.5,0.5,0.5, "cm"))
 
 
-pdf("figures/coefsInSpace_rescaled_noOuties.pdf")
+pdf("plots/coefsInSpace_windorised.pdf")
 ggpubr::ggarrange(pTDr, pPPTr, pMWMTr, pTDr2, pPPTr2, pMWMTr2, ncol = 3, nrow = 2)
 dev.off()
