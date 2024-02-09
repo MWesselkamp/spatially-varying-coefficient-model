@@ -1,0 +1,4 @@
+
+fgamSVCtrs3: Did not standardise climate variables before fitting the model.
+
+fgamSVCtrs4: Standardized climate variables, x and y coordinates moved in coord system to start at zero. COMPUTING.
